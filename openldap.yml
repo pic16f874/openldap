@@ -1,0 +1,37 @@
+version: '2'
+services:
+   S_OpenLDAP:
+       image: osixia/openldap
+#       command: --copy-service
+       container_name: C_OpenLDAP
+       ports:
+           - 389:389
+           - 689:689
+       volumes:
+           - ldap_config:/etc/ldap/slapd.d
+           - ldap_database:/var/lib/ldap
+       environment:
+           LDAP_DOMAIN: "localhost"
+           LDAP_ORGANISATION: "KanoSoftware"
+           LDAP_ADMIN_PASSWORD: "<K@nomdm"
+
+#       env_file:
+#           - .env_OpenLDAP
+#   networks:
+#   restart: unless-stopped
+
+   S_PhpLDAPAdmin:
+       image: osixia/phpldapadmin
+       environment: 
+            PHPLDAPADMIN_LDAP_HOSTS: openldap
+       links:
+           - S_OpenLDAP
+       depends_on:
+           - S_OpenLDAP
+       ports:
+           - 6443:443
+
+volumes:
+   ldap_config:
+   ldap_database:
+
