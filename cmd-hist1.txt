@@ -1,0 +1,98 @@
+apt-get install slapd ldap-utils phpldapadmin
+dpkg-reconfigure slapd
+nano /etc/phpldapadmin/config.php
+
+ldapsearch -L -H ldap://127.0.0.1 -b"dc=datainfo,dc=local" -x "(uid=kivanov)"
+
+
+
+  105  ###############################################
+  106  apt-get install slapd ldap-utils phpldapadmin
+  107  mousepad /etc/phpldapadmin/config.php
+  108  dpkg-reconfigure slapd
+  109  slappasswd -h {SHA} -s your_password
+  110  cat do.txt 
+  111  ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f add_nodes.ldif
+  112  ldapadd -Q -Y EXTERNAL -H ldapi:/// -f memberof_config.ldif
+  113  ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f refint1.ldif
+  114  ldapadd -Q -Y EXTERNAL -H ldapi:/// -f refint2.ldif
+  115  ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f add_user.ldif
+  116  ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f add_group.ldif
+  117  ldapsearch -x -LLL -H ldap:/// -b uid=kivanov,ou=people,dc=datainfo,dc=local dn memberof
+  118  slappasswd -h {SHA} -s ldap_search
+  119  nano add_user.ldif 
+  120  nano 1/add_user.ldif 
+  121  ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f add_search_user.ldif
+  122  ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f 1/add_search_user.ldif
+  123  history 
+root@deb8-zabbix324:~# 
+
+
+
+
+Установка OpenLDAP на Debian8.
+
+1) команда
+apt-get install slapd ldap-utils phpldapadmin
+установит OpenLDAP, утилиты командной строки, и веб оболочку.
+
+2) после установки запускаем
+dpkg-reconfigure slapd
+и отвечаем на вопросы конфигуратора.
+
+3) редактируем
+/etc/phpldapadmin/config.php
+
+$servers->setValue('server','host','127.0.0.1');
+$servers->setValue('server','base',array('dc=datainfo,dc=local'));
+$servers->setValue('login','bind_id','cn=admin,dc=datainfo,dc=local');
+
+4) Для того, чтобы OpenLDAP работал с Cache, нужно чтобы OpenLDAP работал с аттрибутом memberOf пользователя.
+    Для этого нужно включить memberOf оверлей в OpenLDAP.
+
+5) создадим ldif - файлик c описаниями организационных групп (ou)
+    add_nodes.ldif
+
+и добавим их
+ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f add_nodes.ldif
+
+6) создадим описания модулей memberof и refint файлики
+
+memberof_config.ldif  refint1.ldif  refint2.ldif
+и добавляем их в конфигурацию
+
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f memberof_config.ldif
+ldapmodify -Q -Y EXTERNAL -H ldapi:/// -f refint1.ldif
+ldapadd -Q -Y EXTERNAL -H ldapi:/// -f refint2.ldif
+
+теперь можно добавить пользователей и группы.
+
+перед добавлением пользователя нужно опучить отпечаток его пароля при помощи команды 
+
+slappasswd -h {SHA} -s your_password
+
+полученный пароль вставляем в файлик add_user.ldif
+
+ 
+
+добавляем пользователей
+ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f add_user.ldif
+
+ 
+
+добавляем группы
+ldapadd -x -D cn=admin,dc=datainfo,dc=local -W -f add_group.ldif
+
+ 
+
+проверяем
+ldapsearch -x -LLL -H ldap:/// -b uid=kivanov,ou=people,dc=datainfo,dc=local dn memberof
+
+ 
+
+ПРИМЕЧАНИЕ: если создавать пользователей и группы средствами phpLDAPadmin,
+то используются другие объектные классы и memberOf не работает.
+Поэтому создаем из консоли на основани приложенных файлов.
+
+http://www.adimian.com/blog/2014/10/how-to-enable-memberof-using-openldap/
+https://technicalnotes.wordpress.com/2014/04/19/openldap-setup-with-memberof-overlay/
